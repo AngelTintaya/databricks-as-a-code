@@ -1,170 +1,207 @@
-# Databricks Asset Bundle Setup Guide
+# Setup Guide
 
-This project uses Databricks Asset Bundles (DAB) to manage and deploy notebooks to your Databricks workspace from VS Code.
+Step-by-step instructions to configure and deploy this project to your Databricks workspace.
+
+---
 
 ## Prerequisites
 
-1. **Install Databricks CLI (v0.200+ with bundle support)**
-   ```bash
-   # Using Homebrew (macOS/Linux)
-   brew tap databricks/tap
-   brew install databricks
-   
-   # Verify installation
-   databricks --version
-   ```
-   Note: The pip version (0.18.0) doesn't support bundles. Use Homebrew for the newer CLI.
+### 1. Databricks CLI (via Homebrew)
 
-2. **Install Python dependencies**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
-   This includes:
-   - Databricks SDK
-   - python-dotenv (auto-loads .env credentials)
+The bundle and job features require the **new** Databricks CLI (v1.0+). The legacy pip version (v0.18) does not support bundles.
 
-3. **VS Code Extension**: Install the official Databricks extension
-   - Search for "Databricks" in VS Code extensions
-   - Install the official Databricks extension by Databricks, Inc.
+```bash
+brew tap databricks/tap
+brew install databricks
+
+# Verify — should show 1.x.x
+databricks --version
+```
+
+### 2. Python dependencies
+
+```bash
+pip3 install -r requirements.txt
+```
+
+The only runtime dependency is `python-dotenv`, used by `validate_databricks.py` to load `.env`.
+
+---
 
 ## Configuration
 
-### 1. Set up your credentials in `.env`
-
-Edit the `.env` file with your workspace credentials:
+### 1. Create your `.env` file
 
 ```bash
-DATABRICKS_HOST=https://your-workspace.cloud.databricks.com
-DATABRICKS_TOKEN=your_personal_access_token_here
+cp .env.example .env
 ```
 
-**How to get your credentials:**
-
-1. **Host URL**: Your Databricks workspace URL (e.g., `https://adb-1234567890.cloud.databricks.com`)
-2. **Personal Access Token**:
-   - In Databricks, go to Settings → User Settings → Developer → Access tokens
-   - Click "Generate new token"
-   - Copy the token and paste in `.env`
-
-### 2. Environment variables
-
-The `.env` file will be automatically loaded by Python scripts (via `python-dotenv`). If you need to use CLI commands directly, you can load them manually:
+Edit `.env` with your workspace credentials:
 
 ```bash
-# Optional: Load the .env file for CLI commands
-export $(cat .env | xargs)
+DATABRICKS_HOST=https://your-workspace.azuredatabricks.net
+
+# Service Principal OAuth M2M (recommended for pipelines)
+DATABRICKS_CLIENT_ID=your_service_principal_client_id
+DATABRICKS_CLIENT_SECRET=your_service_principal_client_secret
+
+# Alternative: Personal Access Token (for interactive use)
+# DATABRICKS_TOKEN=your_personal_access_token
 ```
 
-## Using Databricks Asset Bundle
+### 2. Get your credentials
 
-### Deploy the bundle
+**Service Principal (recommended)**:
+1. In Databricks, go to **Settings → Identity & Access → Service Principals**
+2. Create a service principal (or use an existing one)
+3. Under the service principal, go to **Secrets → Generate Secret**
+4. Copy the **Client ID** and the generated **Secret** into `.env`
+5. Grant the service principal **Can Manage** access on the workspace path it will deploy to
+
+**Personal Access Token** (for manual/interactive use):
+1. Go to **Settings → Developer → Access Tokens**
+2. Click **Generate new token**, set an expiry
+3. Copy the token into `.env` as `DATABRICKS_TOKEN`
+
+> **Note**: Do not set both `DATABRICKS_TOKEN` and `DATABRICKS_CLIENT_SECRET` at the same time.  
+> The CLI will fail with "more than one authorization method configured".
+
+### 3. Validate your setup
 
 ```bash
-# Validate bundle configuration
+python3 validate_databricks.py
+```
+
+This checks that your `.env` exists, credentials are set, the CLI is installed, and `databricks.yml` is present.
+
+---
+
+## Deploy
+
+### Load credentials for CLI commands
+
+```bash
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+```
+
+> The `grep` filters out comment lines and blank lines, which would cause `export` to fail.
+
+### Validate the bundle
+
+```bash
 databricks bundle validate
-
-# Deploy notebooks to your workspace
-databricks bundle deploy
-
-# View deployed resources
-databricks bundle show
 ```
 
-### Create new notebooks
+This parses `databricks.yml`, resolves all paths, and checks connectivity to your workspace. Fix any errors here before deploying.
 
-1. Create a new `.py` file in the `notebooks/` directory
-2. Use the comment format below to structure your notebook:
+### Deploy
+
+```bash
+databricks bundle deploy
+```
+
+This uploads all notebooks to:
+```
+/Workspace/Projects/databricks-notebooks/dev/files/
+```
+
+And creates the Databricks Job **"DE Class — E-Commerce Pipeline"** in your workspace.
+
+---
+
+## Running the pipeline
+
+After deploying, you can trigger the job from the Databricks UI or via CLI:
+
+```bash
+databricks bundle run ecommerce_pipeline
+```
+
+To run for a specific date (useful for backfilling):
+```bash
+databricks bundle run ecommerce_pipeline \
+  --python-named-params "run_date=2024-01-15"
+```
+
+To run only a specific task:
+```bash
+databricks bundle run ecommerce_pipeline --task bronze_ingest
+```
+
+---
+
+## Workspace permissions
+
+The service principal needs **Can Manage** access on the deploy path.
+
+To grant access:
+1. In Databricks, browse to **Workspace → Projects**
+2. Right-click the target folder → **Permissions**
+3. Add the service principal with **Can Manage** permission
+
+---
+
+## Adding new notebooks
+
+1. Create a `.py` file in `notebooks/` using the Databricks notebook format:
 
 ```python
 # Databricks notebook source
 
 # COMMAND ----------
 
-# Your code here
-print("Hello, Databricks!")
+# MAGIC %md
+# MAGIC # My Notebook
 
 # COMMAND ----------
 
-# More cells
-spark.sql("SELECT 1 as number").display()
+print("Hello, Databricks!")
 ```
 
-3. Update `databricks.yml` to include your new notebook:
+2. Add a task for it in `databricks.yml` under `resources.jobs.ecommerce_pipeline.tasks`
+3. Re-deploy: `databricks bundle deploy`
 
-```yaml
-resources:
-  notebooks:
-    my_new_notebook:
-      path: ./notebooks/my_new_notebook
-      language: PYTHON
-      object_type: DIRECTORY
-      format: SOURCE
-```
+---
 
-### Sync notebooks with VS Code
-
-1. Open the Databricks extension in VS Code
-2. Click "Connect to Workspace"
-3. Enter your workspace URL and personal access token
-4. Browse and edit notebooks directly in VS Code
-5. Changes sync automatically to your workspace
-
-## Updating your notebook in Databricks
-
-After making changes locally:
+## Destroying the deployment
 
 ```bash
-# Re-deploy the bundle
-databricks bundle deploy --force
+databricks bundle destroy
 ```
+
+This removes the uploaded files and deletes the job from Databricks. It does **not** drop the Delta tables — run `99_cleanup.py` interactively for that.
+
+---
 
 ## Troubleshooting
 
-### Databricks CLI not found or wrong version
+**`export` fails with "not valid in this context"**  
+Your `.env` has comment lines. Use the filtered export:
 ```bash
-# Install via Homebrew (required for bundle support)
-brew tap databricks/tap
-brew install databricks
-
-# Check version (should be 0.200+)
-databricks --version
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
 ```
 
-### Python dependencies not installed
+**401 Unauthorized**  
+- Check that `DATABRICKS_HOST` is correct (full URL including `https://`)
+- Ensure only one auth method is set (`CLIENT_SECRET` or `TOKEN`, not both)
+- Verify the secret/token has not expired
+
+**403 Permission Denied on deploy**  
+The service principal lacks write access to the deploy path. See [Workspace permissions](#workspace-permissions) above.
+
+**`bundle` command not found**  
+You have the legacy CLI (v0.18). Reinstall via Homebrew:
 ```bash
-pip3 install -r requirements.txt
-python3 validate_databricks.py
+brew tap databricks/tap && brew install databricks
 ```
 
-### "Authentication failed" error
-- Verify your `DATABRICKS_HOST` and `DATABRICKS_TOKEN` in `.env`
-- For CLI commands, export variables: `export $(cat .env | xargs)`
-- Python scripts auto-load from `.env`
+**Validation OK but job not visible in UI**  
+Run `databricks bundle deploy` — `validate` only checks the config, it does not deploy.
 
-### Notebooks not appearing in workspace
-- Run `databricks bundle deploy` again
-- Check the workspace path defined in `databricks.yml`
-- Verify the bundle is deployed: `databricks bundle show`
+---
 
-### VS Code extension not connecting
-- Ensure the official Databricks extension is installed
-- Reload VS Code after installing
-- Check your workspace URL format (should start with `https://`)
+## Security notes
 
-## Environment Variables
-
-The `databricks.yml` reads credentials from environment variables:
-- `DATABRICKS_HOST` - Your workspace URL
-- `DATABRICKS_TOKEN` - Your personal access token
-
-Python scripts automatically load from `.env` via `python-dotenv`. For CLI commands, load with:
-```bash
-export $(cat .env | xargs)
-```
-
-## Security Notes
-
-- ✅ `.env` is in `.gitignore` - credentials won't be committed
-- ✅ Keep your personal access token confidential
-- ✅ Rotate tokens regularly for security
-- ⚠️ Never commit credentials to version control
+- `.env` is in `.gitignore` — credentials are never committed
+- Rotate service principal secrets before their expiry date
+- In CI/CD, inject credentials as environment variables or GitHub Secrets — never hardcode them
