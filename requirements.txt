@@ -1,9 +1,11 @@
-# Databricks CLI and SDK
-databricks-cli>=0.17.0
+# Databricks SDK for workspace operations
 databricks-sdk>=0.20.0
 
 # Python dotenv for environment variable management
 python-dotenv>=1.0.0
+
+# YAML support for bundle configuration
+pyyaml>=6.0
 
 # Development dependencies
 pytest>=7.0.0

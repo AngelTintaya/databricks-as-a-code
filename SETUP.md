@@ -4,17 +4,26 @@ This project uses Databricks Asset Bundles (DAB) to manage and deploy notebooks 
 
 ## Prerequisites
 
-1. **Install dependencies**
+1. **Install Databricks CLI (v0.200+ with bundle support)**
    ```bash
-   # Install from requirements.txt
-   pip install -r requirements.txt
+   # Using Homebrew (macOS/Linux)
+   brew tap databricks/tap
+   brew install databricks
+   
+   # Verify installation
+   databricks --version
+   ```
+   Note: The pip version (0.18.0) doesn't support bundles. Use Homebrew for the newer CLI.
+
+2. **Install Python dependencies**
+   ```bash
+   pip3 install -r requirements.txt
    ```
    This includes:
-   - Databricks CLI
    - Databricks SDK
    - python-dotenv (auto-loads .env credentials)
 
-2. **VS Code Extension**: Install the official Databricks extension
+3. **VS Code Extension**: Install the official Databricks extension
    - Search for "Databricks" in VS Code extensions
    - Install the official Databricks extension by Databricks, Inc.
 
@@ -111,9 +120,20 @@ databricks bundle deploy --force
 
 ## Troubleshooting
 
-### Dependencies not installed
+### Databricks CLI not found or wrong version
 ```bash
-pip install -r requirements.txt
+# Install via Homebrew (required for bundle support)
+brew tap databricks/tap
+brew install databricks
+
+# Check version (should be 0.200+)
+databricks --version
+```
+
+### Python dependencies not installed
+```bash
+pip3 install -r requirements.txt
+python3 validate_databricks.py
 ```
 
 ### "Authentication failed" error
