@@ -7,6 +7,14 @@ import os
 import sys
 from pathlib import Path
 
+# Load .env file automatically
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️  python-dotenv not installed. Run: pip install -r requirements.txt")
+    print("   Or load manually: export $(cat .env | xargs)\n")
+
 
 def check_env_file():
     """Check if .env file exists"""
@@ -24,14 +32,12 @@ def check_credentials():
     token = os.getenv("DATABRICKS_TOKEN")
 
     if not host:
-        print("❌ DATABRICKS_HOST not set")
-        print("   Run: export $(cat .env | xargs)")
+        print("❌ DATABRICKS_HOST not set in .env")
         return False
     print(f"✅ DATABRICKS_HOST: {host}")
 
     if not token:
-        print("❌ DATABRICKS_TOKEN not set")
-        print("   Run: export $(cat .env | xargs)")
+        print("❌ DATABRICKS_TOKEN not set in .env")
         return False
 
     # Don't print the full token, just confirm it exists

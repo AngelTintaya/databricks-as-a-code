@@ -4,14 +4,15 @@ This project uses Databricks Asset Bundles (DAB) to manage and deploy notebooks 
 
 ## Prerequisites
 
-1. **Databricks CLI** installed
+1. **Install dependencies**
    ```bash
-   # Using Homebrew (macOS)
-   brew install databricks-cli
-   
-   # Or using pip
-   pip install databricks-cli
+   # Install from requirements.txt
+   pip install -r requirements.txt
    ```
+   This includes:
+   - Databricks CLI
+   - Databricks SDK
+   - python-dotenv (auto-loads .env credentials)
 
 2. **VS Code Extension**: Install the official Databricks extension
    - Search for "Databricks" in VS Code extensions
@@ -36,15 +37,13 @@ DATABRICKS_TOKEN=your_personal_access_token_here
    - Click "Generate new token"
    - Copy the token and paste in `.env`
 
-### 2. Load environment variables
+### 2. Environment variables
+
+The `.env` file will be automatically loaded by Python scripts (via `python-dotenv`). If you need to use CLI commands directly, you can load them manually:
 
 ```bash
-# Load the .env file
+# Optional: Load the .env file for CLI commands
 export $(cat .env | xargs)
-
-# Verify credentials are loaded
-echo $DATABRICKS_HOST
-echo $DATABRICKS_TOKEN
 ```
 
 ## Using Databricks Asset Bundle
@@ -112,9 +111,15 @@ databricks bundle deploy --force
 
 ## Troubleshooting
 
+### Dependencies not installed
+```bash
+pip install -r requirements.txt
+```
+
 ### "Authentication failed" error
 - Verify your `DATABRICKS_HOST` and `DATABRICKS_TOKEN` in `.env`
-- Make sure you've exported the environment variables: `export $(cat .env | xargs)`
+- For CLI commands, export variables: `export $(cat .env | xargs)`
+- Python scripts auto-load from `.env`
 
 ### Notebooks not appearing in workspace
 - Run `databricks bundle deploy` again
@@ -132,7 +137,10 @@ The `databricks.yml` reads credentials from environment variables:
 - `DATABRICKS_HOST` - Your workspace URL
 - `DATABRICKS_TOKEN` - Your personal access token
 
-Load them with: `export $(cat .env | xargs)`
+Python scripts automatically load from `.env` via `python-dotenv`. For CLI commands, load with:
+```bash
+export $(cat .env | xargs)
+```
 
 ## Security Notes
 
