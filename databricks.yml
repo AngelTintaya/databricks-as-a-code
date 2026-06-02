@@ -5,3 +5,128 @@ targets:
   dev:
     workspace:
       root_path: /Workspace/Projects/${bundle.name}/${bundle.target}
+
+resources:
+  jobs:
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # E-Commerce Pipeline — Classroom Demo
+    #
+    # Use case : Daily e-commerce order processing (Bronze → Silver → Gold)
+    # Cluster  : Existing cluster 0525-235722-qxprpn28
+    #
+    # Teaching points covered:
+    #   - Task dependencies (linear DAG)
+    #   - Automatic retries per task
+    #   - Email alerts on failure
+    #   - Notebook parameters passed from job config
+    #   - Health alert if total run exceeds expected duration
+    #
+    # Production note: Real pipelines use job clusters (not existing clusters)
+    # so each run gets a fresh, isolated environment and you pay only for run time.
+    # We use an existing cluster here to avoid cluster startup latency in the demo.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    ecommerce_pipeline:
+      name: "DE Class — E-Commerce Pipeline"
+      description: >
+        Bronze → Silver → Gold pipeline for e-commerce orders.
+        Demonstrates idempotency, retries, structured logging, and DQ gates.
+
+      # ── Alerts ──────────────────────────────────────────────────────────────
+      # Databricks sends this email automatically after max_retries are exhausted.
+      # No external webhook or monitoring tool needed for basic alerting.
+      email_notifications:
+        on_failure:
+          - "a.tintaya.m@gmail.com"
+        no_alert_for_skipped_runs: true
+
+      # ── Health rule ─────────────────────────────────────────────────────────
+      # Fires a warning if the full pipeline takes longer than expected.
+      # Useful for catching performance regressions early.
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 1800  # 30 minutes — alert if the pipeline takes longer than this
+
+      # ── Task graph ──────────────────────────────────────────────────────────
+      tasks:
+
+        # ── Task 1: Setup ────────────────────────────────────────────────────
+        - task_key: setup
+          description: "Create database and Delta tables (idempotent — safe to re-run)"
+          existing_cluster_id: "0525-235722-qxprpn28"
+          notebook_task:
+            notebook_path: ./notebooks/jobs/ecommerce_pipeline/00_setup.py
+            base_parameters:
+              catalog: "my_catalog"
+          timeout_seconds: 300
+          # No retries needed — DDL is idempotent and fast
+
+        # ── Task 2: Bronze Ingestion ─────────────────────────────────────────
+        - task_key: bronze_ingest
+          description: "Generate and ingest raw orders into the Bronze Delta table"
+          depends_on:
+            - task_key: setup
+          existing_cluster_id: "0525-235722-qxprpn28"
+          notebook_task:
+            notebook_path: ./notebooks/jobs/ecommerce_pipeline/01_bronze_ingest.py
+            base_parameters:
+              catalog:    "my_catalog"
+              # run_date: leave blank to use today, or pass YYYY-MM-DD to backfill
+              run_date:   ""
+              batch_size: "200"
+          # Retry config: transient failures (network, throttling) are common in ingestion
+          max_retries: 2
+          min_retry_interval_millis: 30000   # 30s between retries
+          retry_on_timeout: true
+          timeout_seconds: 600
+
+        # ── Task 3: Silver Cleaning ──────────────────────────────────────────
+        - task_key: silver_clean
+          description: "Validate, clean, and enrich Bronze → Silver"
+          depends_on:
+            - task_key: bronze_ingest
+          existing_cluster_id: "0525-235722-qxprpn28"
+          notebook_task:
+            notebook_path: ./notebooks/jobs/ecommerce_pipeline/02_silver_clean.py
+            base_parameters:
+              catalog:  "my_catalog"
+              run_date: ""
+          max_retries: 2
+          min_retry_interval_millis: 30000
+          retry_on_timeout: true
+          timeout_seconds: 600
+
+        # ── Task 4: Gold Aggregation ─────────────────────────────────────────
+        - task_key: gold_aggregate
+          description: "Aggregate Silver → Gold daily revenue by product category"
+          depends_on:
+            - task_key: silver_clean
+          existing_cluster_id: "0525-235722-qxprpn28"
+          notebook_task:
+            notebook_path: ./notebooks/jobs/ecommerce_pipeline/03_gold_aggregate.py
+            base_parameters:
+              catalog:  "my_catalog"
+              run_date: ""
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          timeout_seconds: 600
+
+        # ── Task 5: Data Quality Gate ────────────────────────────────────────
+        - task_key: data_quality
+          description: "End-to-end DQ checks — raises exception to trigger retry + alert"
+          depends_on:
+            - task_key: gold_aggregate
+          existing_cluster_id: "0525-235722-qxprpn28"
+          notebook_task:
+            notebook_path: ./notebooks/jobs/ecommerce_pipeline/04_data_quality.py
+            base_parameters:
+              catalog:       "my_catalog"
+              run_date:      ""
+              min_pass_rate: "0.90"
+          # One retry: gives the pipeline a second chance if a transient issue caused the DQ failure
+          max_retries: 1
+          min_retry_interval_millis: 30000
+          timeout_seconds: 300
