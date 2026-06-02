@@ -1,12 +1,2 @@
-# Databricks SDK for workspace operations
-databricks-sdk>=0.20.0
-
-# Python dotenv for environment variable management
+# Python dotenv for loading .env credentials
 python-dotenv>=1.0.0
-
-# YAML support for bundle configuration
-pyyaml>=6.0
-
-# Development dependencies
-pytest>=7.0.0
-black>=23.0.0

@@ -1,27 +1,7 @@
-version: 2.1
-
 bundle:
   name: databricks-notebooks
-  description: Databricks notebooks managed via asset bundles
-  environment: dev
 
-variables:
-  workspace_path:
-    description: Path in Databricks workspace
-    default: /Workspace/Users/${workspace.current_user.user_name}/databricks-notebooks
-
-# Configuration profiles for different environments
-environments:
+targets:
   dev:
-    description: Development environment
     workspace:
-      host: ${DATABRICKS_HOST}
-      token: ${DATABRICKS_TOKEN}
-
-resources:
-  notebooks:
-    sample_notebook:
-      path: ./notebooks/sample_notebook
-      language: PYTHON
-      object_type: DIRECTORY
-      format: SOURCE
+      root_path: /Workspace/Projects/${bundle.name}/${bundle.target}
