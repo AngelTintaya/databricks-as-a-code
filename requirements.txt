@@ -1,0 +1,2 @@
+# Python dotenv for loading .env credentials
+python-dotenv>=1.0.0

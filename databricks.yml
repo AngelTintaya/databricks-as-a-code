@@ -1,0 +1,7 @@
+bundle:
+  name: databricks-notebooks
+
+targets:
+  dev:
+    workspace:
+      root_path: /Workspace/Projects/${bundle.name}/${bundle.target}
