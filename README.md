@@ -87,15 +87,21 @@ See [SETUP.md](SETUP.md) for full installation and configuration instructions.
 
 ## Authentication
 
-This project uses **Service Principal OAuth M2M** authentication — recommended for automated pipelines and CI/CD.
+This project uses **Service Principal (SP) OAuth M2M** authentication throughout — for the CLI, for bundle deployment, and for the `data_platform` notebooks.
 
-```
-DATABRICKS_HOST          Your workspace URL
-DATABRICKS_CLIENT_ID     Service principal application ID
-DATABRICKS_CLIENT_SECRET Secret generated for the service principal
-```
+| Credential | Where it's used |
+|---|---|
+| `DATABRICKS_HOST` | Workspace URL — used by CLI and `.env` |
+| `DATABRICKS_CLIENT_ID` | SP application ID — CLI auth + notebook secret |
+| `DATABRICKS_CLIENT_SECRET` | SP secret — CLI auth + notebook secret |
 
-The Databricks CLI handles the OAuth token exchange automatically when these environment variables are set.
+The SP needs two levels of access:
+- **Workspace** — to deploy bundles and manage secrets via the CLI
+- **Account Admin** — to create and manage Unity Catalog groups via the SCIM API (used by `data_platform` notebooks)
+
+Personal Access Tokens (PATs) are supported for interactive CLI use but cannot be used for the `data_platform` notebooks — those require an account-level OAuth token that only a service principal can obtain.
+
+See [SETUP.md](SETUP.md#2-get-your-credentials) for full step-by-step instructions on creating the SP, granting roles, configuring `~/.databrickscfg`, and storing secrets.
 
 ---
 

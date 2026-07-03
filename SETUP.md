@@ -51,20 +51,79 @@ DATABRICKS_CLIENT_SECRET=your_service_principal_client_secret
 
 ### 2. Get your credentials
 
-**Service Principal (recommended)**:
-1. In Databricks, go to **Settings → Identity & Access → Service Principals**
-2. Create a service principal (or use an existing one)
-3. Under the service principal, go to **Secrets → Generate Secret**
-4. Copy the **Client ID** and the generated **Secret** into `.env`
-5. Grant the service principal **Can Manage** access on the workspace path it will deploy to
+#### Service Principal (recommended for all automation)
 
-**Personal Access Token** (for manual/interactive use):
-1. Go to **Settings → Developer → Access Tokens**
-2. Click **Generate new token**, set an expiry
-3. Copy the token into `.env` as `DATABRICKS_TOKEN`
+A **Service Principal (SP)** is a non-human identity used by applications and scripts to authenticate to Databricks. It is preferred over a Personal Access Token because it does not expire on a schedule, can have scoped permissions, and works in CI/CD without being tied to a person's account.
 
-> **Note**: Do not set both `DATABRICKS_TOKEN` and `DATABRICKS_CLIENT_SECRET` at the same time.  
-> The CLI will fail with "more than one authorization method configured".
+This project uses the SP for two things:
+- **CLI authentication** — the Databricks CLI (`~/.databrickscfg`) uses the SP to deploy bundles and manage secrets
+- **Notebook authentication** — the `data_platform` notebooks call the Databricks account-level SCIM API to create groups and manage users; this requires an account-level OAuth token fetched using the SP credentials at runtime via `dbutils.secrets`
+
+**Creating a Service Principal (Azure Databricks):**
+
+1. Go to **Azure Portal → Microsoft Entra ID → App registrations → New registration**
+2. Give it a name (e.g. `databricks-sp-de`) and click **Register**
+3. Copy the **Application (client) ID** — this is your `DATABRICKS_CLIENT_ID`
+4. Go to **Certificates & secrets → New client secret**, set an expiry, click **Add**
+5. Copy the **Value** immediately (it is only shown once) — this is your `DATABRICKS_CLIENT_SECRET`
+6. Now register the SP in Databricks: go to your workspace → **Settings → Identity & Access → Service Principals → Add service principal**, search for the app name you just created
+
+> **Secret expiry**: The client secret has an expiry date you choose (max 24 months on Azure). When it expires, repeat steps 4–5 and update `.env`, `~/.databrickscfg`, and the Databricks secret scope.
+
+**Granting Account Admin role** (required for `data_platform` notebooks):
+
+The SCIM API calls in `data_platform/common/utils.py` create and manage groups at the **account level** (not workspace level), which requires the SP to have the Account Admin role.
+
+1. Go to `https://accounts.azuredatabricks.net`
+2. Navigate to **User Management → Service Principals**
+3. Find your SP and assign it the **Account Admin** role
+
+**Configuring the CLI to use the SP:**
+
+Edit `~/.databrickscfg` (your home directory, e.g. `/Users/yourname/.databrickscfg`):
+
+```ini
+[DEFAULT]
+host = https://your-workspace.azuredatabricks.net/
+client_id = your_service_principal_client_id
+client_secret = your_service_principal_client_secret
+```
+
+Verify it works:
+```bash
+databricks auth describe
+# Should show: Authenticated with: oauth-m2m
+```
+
+> Do not put `token =` and `client_secret =` in the same profile — the CLI will fail with "more than one authorization method configured".
+
+**Storing SP credentials as Databricks secrets** (required for `data_platform` notebooks):
+
+The `data_platform/common/_params.py` notebook reads the SP credentials from a secret scope at runtime to fetch an account-level OAuth token. Store them once using the CLI:
+
+```bash
+databricks secrets put-secret de-scope sp-client-id --string-value "your_client_id"
+databricks secrets put-secret de-scope sp-client-secret --string-value "your_client_secret"
+```
+
+Verify:
+```bash
+databricks secrets list-secrets de-scope
+# Should list: sp-client-id, sp-client-secret (values are always redacted)
+```
+
+---
+
+#### Personal Access Token (for quick interactive use only)
+
+A **PAT** is a token tied to your personal Databricks user account. It is simpler to create but not recommended for automation because it expires, is tied to a person, and has no granular scoping.
+
+1. Go to your Databricks workspace → **Settings → Developer → Access Tokens**
+2. Click **Generate new token**, give it a name and expiry
+3. Copy the token — it is only shown once
+4. Add it to `.env` as `DATABRICKS_TOKEN`, or to `~/.databrickscfg` as `token =`
+
+> The `data_platform` notebooks **cannot use a PAT** for group management because account-level SCIM API requires an OAuth token from a service principal with Account Admin role — a workspace PAT does not have that scope.
 
 ### 3. Validate your setup
 
