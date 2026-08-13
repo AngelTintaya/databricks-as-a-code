@@ -61,7 +61,8 @@ schema_descriptions = {
 privileges = {
     'reader': ['BROWSE', 'USE CATALOG', 'USE SCHEMA', 'SELECT', 'EXECUTE', 'READ VOLUME'],
     'writer': ['BROWSE', 'USE CATALOG', 'USE SCHEMA', 'SELECT', 'EXECUTE', 'READ VOLUME',
-               'APPLY TAG', 'MODIFY', 'CREATE FUNCTION', 'CREATE MATERIALIZED VIEW', 'CREATE MODEL', 'CREATE TABLE'],
+               'APPLY TAG', 'MODIFY', 'CREATE FUNCTION', 'CREATE MATERIALIZED VIEW', 'CREATE MODEL', 'CREATE TABLE',
+               'READ SECRET', 'REFRESH'],
     'admin':  ['ALL PRIVILEGES'],
     # 'genie_reader': ['USE SCHEMA'],
     # 'genie_admin':  ['USE SCHEMA']
