@@ -1,0 +1,34 @@
+data_product: inventario
+domain: operaciones
+table: vw_inventario
+layer: gold
+description: Contrato generado automáticamente para vw_inventario
+owner: angel.tintaya@utec.edu.pe
+generated_at: '2025-07-02T05:09:58.201846'
+schema:
+- name: cod_mes
+  type: string
+  description: Mes en el que se hizo el inventario
+- name: producto_id
+  type: string
+  description: Identificador único del producto
+- name: producto_nombre
+  type: string
+  description: Nombre del producto
+- name: stock
+  type: int
+  description: Stock disponible
+- name: sede
+  type: string
+  description: Sede en la cual hace referencia el inventario
+- name: created_at
+  type: timestamp
+  description: Timestamp en que se creó el registro
+- name: inserted_at
+  type: timestamp
+  description: Timestamp en que se insertó el registro
+expectations:
+  freshness: updated_monthly
+  quality:
+  - rule: producto_id IS NOT NULL
+    level: error

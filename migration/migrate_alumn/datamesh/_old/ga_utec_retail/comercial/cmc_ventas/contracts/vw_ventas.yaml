@@ -1,0 +1,47 @@
+data_product: ventas
+domain: comercial
+table: vw_ventas
+layer: gold
+description: Contrato generado automáticamente para vw_ventas
+owner: angel.tintaya@utec.edu.pe
+generated_at: '2025-07-02T05:30:56.255429'
+schema:
+- name: cod_mes
+  type: string
+  description: Código del mes en que se realizó la venta en formato YYYYMM
+- name: venta_id
+  type: string
+  description: Identificador único de la venta
+- name: cliente_id
+  type: string
+  description: Identificador único del cliente
+- name: producto_id
+  type: string
+  description: Identificador único del producto
+- name: fecha_venta
+  type: date
+  description: Fecha en que se realizó la venta
+- name: cantidad
+  type: int
+  description: Cantidad de productos vendidos
+- name: monto_total
+  type: double
+  description: Precio unitario por cada producto
+- name: canal
+  type: string
+  description: Canal por el que se realizó la venta
+- name: created_at
+  type: timestamp
+  description: Timestamp en que se creó el registro
+- name: inserted_at
+  type: timestamp
+  description: Timestamp en que se actualizó el registro
+expectations:
+  freshness: updated_daily
+  quality:
+  - rule: venta_id IS NOT NULL
+    level: error
+  - rule: cliente_id IS NOT NULL
+    level: error
+  - rule: producto_id IS NOT NULL
+    level: error

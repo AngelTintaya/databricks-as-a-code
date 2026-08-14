@@ -1,0 +1,38 @@
+data_product: inventario
+domain: operaciones
+table: vw_um_producto_performance
+layer: gold
+description: Contrato generado automáticamente para vw_um_producto_performance
+owner: angel.tintaya@utec.edu.pe
+generated_at: '2025-07-02T05:23:00.937271'
+schema:
+- name: periodo
+  type: string
+  description: Periodo de tiempo mensual en el que se calculó el performance
+- name: producto_id
+  type: string
+  description: Identificador único del producto
+- name: producto_nombre
+  type: string
+  description: Nombre del producto
+- name: total_ventas
+  type: int
+  description: Total de unidades vendidas en el periodo
+- name: stock_actual
+  type: int
+  description: Stock actual al cierre del periodo
+- name: rotacion
+  type: double
+  description: Ratio de rotación del producto en el periodo calculado como total_ventas
+    / stock_actual.
+- name: ranking_rotacion
+  type: int
+  description: Ranking dentro del mes por rotación, orden descendente.
+- name: inserted_at
+  type: timestamp
+  description: Timestamp en que se insertó este snapshot
+expectations:
+  freshness: updated_monthly
+  quality:
+  - rule: producto_id IS NOT NULL
+    level: error
