@@ -1,0 +1,41 @@
+data_product: clientes
+domain: marketing
+table: vw_clientes
+layer: gold
+description: Contrato generado automáticamente para vw_clientes
+owner: angel.tintaya@utec.edu.pe
+generated_at: '2025-07-02T04:39:40.637170'
+schema:
+- name: cliente_id
+  type: string
+  description: Identificador único del cliente
+- name: nombre
+  type: string
+  description: Nombre del cliente
+- name: email
+  type: string
+  description: Email del cliente
+- name: fecha_nacimiento
+  type: string
+  description: Fecha de nacimiento del cliente
+- name: genero
+  type: string
+  description: Género del cliente
+- name: ciudad
+  type: string
+  description: Ciudad donde vive el cliente
+- name: created_at
+  type: timestamp
+  description: Timestamp cuando el registro fue creado
+- name: inserted_at
+  type: timestamp
+  description: Timestamp cuando el registro fue insertado
+expectations:
+  freshness: updated_monthly
+  quality:
+  - rule: cliente_id IS NOT NULL
+    level: error
+  - rule: email LIKE '%@%'
+    level: warning
+  - rule: fecha_nacimiento < current_date()
+    level: warning

@@ -1,0 +1,30 @@
+data_product: ventas
+domain: comercial
+table: vw_ventas_por_producto
+layer: gold
+description: Contrato generado automáticamente para vw_ventas_por_producto
+owner: angel.tintaya@utec.edu.pe
+generated_at: '2025-07-02T05:32:08.773615'
+schema:
+- name: cod_mes
+  type: string
+  description: View - Código del mes en que se realizó la venta en formato YYYYMM
+- name: fecha_venta
+  type: date
+  description: View - Fecha en que se realizó la venta
+- name: producto_id
+  type: string
+  description: View - Identificador único del producto
+- name: total_productos
+  type: bigint
+  description: Cantidad de productos vendidos
+- name: total_monto
+  type: double
+  description: Monto total vendido
+expectations:
+  freshness: updated_daily
+  quality:
+  - rule: fecha_venta IS NOT NULL
+    level: error
+  - rule: producto_id IS NOT NULL
+    level: error
