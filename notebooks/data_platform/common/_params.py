@@ -9,9 +9,9 @@ admin = 'atintaya@utec.edu.pe'
 
 # COMMAND ----------
 
-workspace = 'adb-1703116329100891.11'
+workspace = 'adb-7405606514929835.15'
 workspace_url = f'https://{workspace}.azuredatabricks.net'
-warehouse_id = '8ba2a6f5ddb13574'
+warehouse_id = '62d186e2c2843d23'
 
 workspace_pattern = re.compile(r'adb-(\d+)\.\d')
 workspace_id = workspace_pattern.findall(workspace)[0]
