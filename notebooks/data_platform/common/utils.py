@@ -181,7 +181,13 @@ def generate_dataproduct(domain, dp_name, leader, members, action='create'):
     description = f'Data product de {dp_name} del dominio de {domain["name"]}'
 
     if action == 'create':
-        spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog_name} COMMENT '{description}'")
+        spark.sql(
+            f"""
+            CREATE CATALOG IF NOT EXISTS {catalog_name}
+            MANAGED LOCATION 'abfss://managed@stmcdiade.dfs.core.windows.net/'
+            COMMENT '{description}'
+            """
+            )
         for schema_name, schema_desc in schema_descriptions.items():
             full_schema = f'{catalog_name}.{schema_name}'
             spark.sql(f'CREATE SCHEMA IF NOT EXISTS {full_schema} COMMENT "{schema_desc}"')

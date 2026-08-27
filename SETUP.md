@@ -99,9 +99,10 @@ databricks auth describe
 
 **Storing SP credentials as Databricks secrets** (required for `data_platform` notebooks):
 
-The `data_platform/common/_params.py` notebook reads the SP credentials from a secret scope at runtime to fetch an account-level OAuth token. Store them once using the CLI:
+The `data_platform/common/_params.py` notebook reads the SP credentials from a secret scope at runtime to fetch an account-level OAuth token. Create the scope and store the credentials once using the CLI:
 
 ```bash
+databricks secrets create-scope de-scope
 databricks secrets put-secret de-scope sp-client-id --string-value "your_client_id"
 databricks secrets put-secret de-scope sp-client-secret --string-value "your_client_secret"
 ```

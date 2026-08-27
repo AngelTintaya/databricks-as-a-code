@@ -41,9 +41,10 @@ for row in pending:
         """)
         print(f"Done.")
     except Exception as e:
+        error_msg = str(e)[:500].replace("'", "''")   # ← escape single quotes
         spark.sql(f"""
             UPDATE data_platform.admin.dataproduct_requests
-            SET status = 'failed', error = '{str(e)[:500]}', processed_at = current_timestamp()
+            SET status = 'failed', error = '{error_msg}', processed_at = current_timestamp()
             WHERE group = '{group}' AND domain_code = '{domain_code}'
                 AND dp_name = '{dp_name}' AND status = 'pending'
         """)
